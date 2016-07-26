@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>AMApplicationBuild</key>
+	<string>419</string>
+	<key>AMApplicationVersion</key>
+	<string>2.6</string>
+	<key>AMDocumentVersion</key>
+	<string>2</string>
+	<key>actions</key>
+	<array>
+		<dict>
+			<key>action</key>
+			<dict>
+				<key>AMAccepts</key>
+				<dict>
+					<key>Container</key>
+					<string>List</string>
+					<key>Optional</key>
+					<true/>
+					<key>Types</key>
+					<array>
+						<string>com.apple.applescript.object</string>
+					</array>
+				</dict>
+				<key>AMActionVersion</key>
+				<string>1.0.2</string>
+				<key>AMApplication</key>
+				<array>
+					<string>Automator</string>
+				</array>
+				<key>AMParameterProperties</key>
+				<dict>
+					<key>source</key>
+					<dict/>
+				</dict>
+				<key>AMProvides</key>
+				<dict>
+					<key>Container</key>
+					<string>List</string>
+					<key>Types</key>
+					<array>
+						<string>com.apple.applescript.object</string>
+					</array>
+				</dict>
+				<key>ActionBundlePath</key>
+				<string>/System/Library/Automator/Run AppleScript.action</string>
+				<key>ActionName</key>
+				<string>Run AppleScript</string>
+				<key>ActionParameters</key>
+				<dict>
+					<key>source</key>
+					<string>property openssl_path : "/usr/bin/openssl"
+
+global DISPLAY_CHECKSUM
+global VERIFY_CHECKSUM
+
+to get_action()
+	local DISPLAY_CHECKSUM_TEXT
+	local VERIFY_CHECKSUM_TEXT
+
+	local button_text
+
+	set DISPLAY_CHECKSUM_TEXT to "Display Checksum"
+	set VERIFY_CHECKSUM_TEXT to "Verify Checksum"
+
+	tell application "System Events"
+		activate
+
+		set button_text to button returned of (display dialog "What would you like to do?" buttons {"Cancel", DISPLAY_CHECKSUM_TEXT, VERIFY_CHECKSUM_TEXT} default button 3 cancel button 1 with title "Desired Action")
+	end tell
+
+	considering case
+		if button_text = DISPLAY_CHECKSUM_TEXT then
+			return DISPLAY_CHECKSUM
+		else if button_text = VERIFY_CHECKSUM_TEXT then
+			return VERIFY_CHECKSUM
+		else
+			error number -2700  -- Unknown error.
+		end if
+	end considering
+end
+
+to get_expected_checksum()
+	tell application "System Events"
+		activate
+
+		return text returned of (display dialog "Enter the expected checksum." default answer "" with title "Expected Checksum")
+	end tell
+end
+
+to get_hash_command for hash_function on input_file
+	local openssl_suffix
+	local quoted_path
+
+	set openssl_suffix to " | sed 's/^.* //' | tr -d '\\n'"
+	set quoted_path to quoted form of (POSIX path of input_file as text)
+
+	considering case
+		if hash_function = "MD2" then
+			return "OUTPUT=$(" &amp; openssl_path &amp; " md2 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
+		else if hash_function = "MD4" then
+			return "OUTPUT=$(" &amp; openssl_path &amp; " md4 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
+		else if hash_function = "MD5" then
+			return "OUTPUT=$(" &amp; openssl_path &amp; " md5 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
+		else if hash_function = "MDC2" then
+			return "OUTPUT=$(" &amp; openssl_path &amp; " mdc2 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
+		else if hash_function = "RMD-160" then
+			return "OUTPUT=$(" &amp; openssl_path &amp; " rmd160 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
+		else if hash_function = "SHA" then
+			return "OUTPUT=$(" &amp; openssl_path &amp; " sha " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
+		else if hash_function = "SHA-1" then
+			return "OUTPUT=$(" &amp; openssl_path &amp; " sha1 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
+		else if hash_function = "SHA-224" then
+			return "OUTPUT=$(" &amp; openssl_path &amp; " dgst -sha224 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
+		else if hash_function = "SHA-256" then
+			return "OUTPUT=$(" &amp; openssl_path &amp; " dgst -sha256 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
+		else if hash_function = "SHA-384" then
+			return "OUTPUT=$(" &amp; openssl_path &amp; " dgst -sha384 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
+		else if hash_function = "SHA-512" then
+			return "OUTPUT=$(" &amp; openssl_path &amp; " dgst -sha512 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
+		else
+			error number -2700 -- Unknown error.
+		end if
+	end considering
+end
+
+on get_hash_function()
+	local hash_function
+
+	tell application "System Events"
+		activate
+
+		set hash_function to choose from list {"MD2", "MD4", "MD5", "MDC2", "RMD-160", "SHA", "SHA-1", "SHA-224", "SHA-256", "SHA-384", "SHA-512"} with title "Select Hash Function" with prompt "Select the desired cryptographic hash function."
+	end tell
+
+	if hash_function = false then
+		error number -128  -- User canceled.
+	else
+		return item 1 of hash_function
+	end if
+end
+
+on run {input, parameters}
+	local actual_checksum
+	local error_message
+	local expected_checksum
+	local hash_command
+	local hash_function
+	local input_file
+	local posix_path
+
+	set DISPLAY_CHECKSUM to 1
+	set VERIFY_CHECKSUM to 2
+
+	if length of input ≠ 1 then
+		tell application "System Events"
+			activate
+
+			display alert "Please select exactly one file."
+		end tell
+
+		return
+	end if
+
+	try
+		set action to get_action()
+	on error number -128  -- User canceled.
+		return
+	end try
+
+	set input_file to item 1 of input
+	set posix_path to POSIX path of input_file as text
+
+	if action = DISPLAY_CHECKSUM then
+		try
+			set hash_function to get_hash_function()
+		on error number -128  -- User canceled.
+			return
+		end try
+
+		set hash_command to get_hash_command for hash_function on input_file
+
+		tell application "System Events"
+			activate
+
+			try
+				set actual_checksum to do shell script hash_command
+			on error
+				display alert "The path “" &amp; posix_path &amp; "” does not point to a valid file."
+
+				return
+			end try
+
+			display dialog hash_function &amp; " checksum: " &amp; actual_checksum buttons {"OK"} default button 1 with title "Checksum"
+		end tell
+	else if action = VERIFY_CHECKSUM then
+		try
+			set hash_function to get_hash_function()
+		on error number -128  -- User canceled.
+			return
+		end try
+
+		set hash_command to get_hash_command for hash_function on input_file
+
+		try
+			set expected_checksum to get_expected_checksum()
+		on error number -128  -- User canceled.
+			return
+		end try
+
+		try
+			set actual_checksum to do shell script hash_command
+		on error
+			display alert "The path “" &amp; posix_path &amp; "” does not point to a valid file." as critical
+
+			return
+		end try
+
+		tell application "System Events"
+			activate
+
+			if expected_checksum = actual_checksum
+				display dialog "The checksums match." buttons {"OK"} default button 1 with title "Matching Checksums"
+			else
+				display alert "The checksums do not match. The actual checksum was “" &amp; actual_checksum &amp; "”." as warning
+			end if
+		end tell
+	else
+		error number -2700  -- Unknown error.
+	end if
+end
+</string>
+				</dict>
+				<key>BundleIdentifier</key>
+				<string>com.apple.Automator.RunScript</string>
+				<key>CFBundleVersion</key>
+				<string>1.0.2</string>
+				<key>CanShowSelectedItemsWhenRun</key>
+				<false/>
+				<key>CanShowWhenRun</key>
+				<true/>
+				<key>Category</key>
+				<array>
+					<string>AMCategoryUtilities</string>
+				</array>
+				<key>Class Name</key>
+				<string>RunScriptAction</string>
+				<key>InputUUID</key>
+				<string>AA25B0A7-670E-410A-9BC0-FCF8261C2388</string>
+				<key>Keywords</key>
+				<array>
+					<string>Run</string>
+				</array>
+				<key>OutputUUID</key>
+				<string>DFB722BC-0A69-457D-AF9E-9140B12B961F</string>
+				<key>UUID</key>
+				<string>9081B1AF-0B4D-4E58-834E-69A0110C3BB9</string>
+				<key>UnlocalizedApplications</key>
+				<array>
+					<string>Automator</string>
+				</array>
+				<key>arguments</key>
+				<dict>
+					<key>0</key>
+					<dict>
+						<key>default value</key>
+						<string>on run {input, parameters}
+	
+	(* Your script goes here *)
+	
+	return input
+end run</string>
+						<key>name</key>
+						<string>source</string>
+						<key>required</key>
+						<string>0</string>
+						<key>type</key>
+						<string>0</string>
+						<key>uuid</key>
+						<string>0</string>
+					</dict>
+				</dict>
+				<key>isViewVisible</key>
+				<true/>
+				<key>location</key>
+				<string>309.000000:316.000000</string>
+				<key>nibPath</key>
+				<string>/System/Library/Automator/Run AppleScript.action/Contents/Resources/Base.lproj/main.nib</string>
+			</dict>
+			<key>isViewVisible</key>
+			<true/>
+		</dict>
+	</array>
+	<key>connectors</key>
+	<dict/>
+	<key>workflowMetaData</key>
+	<dict>
+		<key>serviceApplicationBundleID</key>
+		<string></string>
+		<key>serviceApplicationPath</key>
+		<string></string>
+		<key>serviceInputTypeIdentifier</key>
+		<string>com.apple.Automator.fileSystemObject</string>
+		<key>serviceOutputTypeIdentifier</key>
+		<string>com.apple.Automator.nothing</string>
+		<key>serviceProcessesInput</key>
+		<integer>0</integer>
+		<key>workflowTypeIdentifier</key>
+		<string>com.apple.Automator.servicesMenu</string>
+	</dict>
+</dict>
+</plist>
