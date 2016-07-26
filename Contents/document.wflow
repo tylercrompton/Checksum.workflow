@@ -144,7 +144,6 @@ end
 
 on run {input, parameters}
 	local actual_checksum
-	local error_message
 	local expected_checksum
 	local hash_command
 	local hash_function
