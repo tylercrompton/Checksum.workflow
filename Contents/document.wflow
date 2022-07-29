@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>AMApplicationBuild</key>
-	<string>419</string>
+	<string>512</string>
 	<key>AMApplicationVersion</key>
-	<string>2.6</string>
+	<string>2.10</string>
 	<key>AMDocumentVersion</key>
 	<string>2</string>
 	<key>actions</key>
@@ -98,28 +98,30 @@ to get_hash_command for hash_function on input_file
 	set quoted_path to quoted form of (POSIX path of input_file as text)
 
 	considering case
-		if hash_function = "MD2" then
-			return "OUTPUT=$(" &amp; openssl_path &amp; " md2 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
+        if hash_function = "GOST" then
+            return "OUTPUT=$(" &amp; openssl_path &amp; " md_gost94 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
 		else if hash_function = "MD4" then
 			return "OUTPUT=$(" &amp; openssl_path &amp; " md4 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
 		else if hash_function = "MD5" then
 			return "OUTPUT=$(" &amp; openssl_path &amp; " md5 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
-		else if hash_function = "MDC2" then
-			return "OUTPUT=$(" &amp; openssl_path &amp; " mdc2 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
-		else if hash_function = "RMD-160" then
-			return "OUTPUT=$(" &amp; openssl_path &amp; " rmd160 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
-		else if hash_function = "SHA" then
-			return "OUTPUT=$(" &amp; openssl_path &amp; " sha " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
+		else if hash_function = "RIPEMD-160" then
+			return "OUTPUT=$(" &amp; openssl_path &amp; " ripemd160 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
 		else if hash_function = "SHA-1" then
 			return "OUTPUT=$(" &amp; openssl_path &amp; " sha1 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
 		else if hash_function = "SHA-224" then
-			return "OUTPUT=$(" &amp; openssl_path &amp; " dgst -sha224 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
+			return "OUTPUT=$(" &amp; openssl_path &amp; " sha224 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
 		else if hash_function = "SHA-256" then
-			return "OUTPUT=$(" &amp; openssl_path &amp; " dgst -sha256 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
+			return "OUTPUT=$(" &amp; openssl_path &amp; " sha256 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
 		else if hash_function = "SHA-384" then
-			return "OUTPUT=$(" &amp; openssl_path &amp; " dgst -sha384 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
+			return "OUTPUT=$(" &amp; openssl_path &amp; " sha384 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
 		else if hash_function = "SHA-512" then
-			return "OUTPUT=$(" &amp; openssl_path &amp; " dgst -sha512 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
+			return "OUTPUT=$(" &amp; openssl_path &amp; " sha512 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
+		else if hash_function = "Streebog-256" then
+			return "OUTPUT=$(" &amp; openssl_path &amp; " streebog256 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
+		else if hash_function = "Streebog-512" then
+			return "OUTPUT=$(" &amp; openssl_path &amp; " streebog512 " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
+		else if hash_function = "Whirlpool" then
+			return "OUTPUT=$(" &amp; openssl_path &amp; " whirlpool " &amp; quoted_path &amp; ") &amp;&amp; echo $OUTPUT" &amp; openssl_suffix
 		else
 			error number -2700 -- Unknown error.
 		end if
@@ -132,7 +134,7 @@ on get_hash_function()
 	tell application "System Events"
 		activate
 
-		set hash_function to choose from list {"MD2", "MD4", "MD5", "MDC2", "RMD-160", "SHA", "SHA-1", "SHA-224", "SHA-256", "SHA-384", "SHA-512"} with title "Select Hash Function" with prompt "Select the desired cryptographic hash function."
+		set hash_function to choose from list {"GOST", "MD4", "MD5", "RIPEMD-160", "SHA-1", "SHA-224", "SHA-256", "SHA-384", "SHA-512", "Streebog-256", "Streebog-512", "Whirlpool"} with title "Select Hash Function" with prompt "Select the desired cryptographic hash function."
 	end tell
 
 	if hash_function = false then
@@ -284,7 +286,7 @@ end run</string>
 				<key>isViewVisible</key>
 				<true/>
 				<key>location</key>
-				<string>309.000000:316.000000</string>
+				<string>309.000000:368.000000</string>
 				<key>nibPath</key>
 				<string>/System/Library/Automator/Run AppleScript.action/Contents/Resources/Base.lproj/main.nib</string>
 			</dict>
@@ -296,15 +298,27 @@ end run</string>
 	<dict/>
 	<key>workflowMetaData</key>
 	<dict>
-		<key>serviceApplicationBundleID</key>
-		<string></string>
-		<key>serviceApplicationPath</key>
-		<string></string>
+		<key>applicationBundleIDsByPath</key>
+		<dict/>
+		<key>applicationPaths</key>
+		<array/>
+		<key>inputTypeIdentifier</key>
+		<string>com.apple.Automator.fileSystemObject</string>
+		<key>outputTypeIdentifier</key>
+		<string>com.apple.Automator.nothing</string>
+		<key>presentationMode</key>
+		<integer>15</integer>
+		<key>processesInput</key>
+		<integer>0</integer>
 		<key>serviceInputTypeIdentifier</key>
 		<string>com.apple.Automator.fileSystemObject</string>
 		<key>serviceOutputTypeIdentifier</key>
 		<string>com.apple.Automator.nothing</string>
 		<key>serviceProcessesInput</key>
+		<integer>0</integer>
+		<key>systemImageName</key>
+		<string>NSActionTemplate</string>
+		<key>useAutomaticInputType</key>
 		<integer>0</integer>
 		<key>workflowTypeIdentifier</key>
 		<string>com.apple.Automator.servicesMenu</string>
